@@ -1,0 +1,72 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters":{
+        "actionGroupId": {
+            "defaultValue": "/subscriptions/a45f8c13-6f21-4563-8919-c243a0b47400/resourceGroups/default-activitylogalerts/providers/microsoft.insights/actiongroups/sgs%20test%20demo-api",
+            "type": "string"
+        },
+        "components_demosplitter_name": {
+            "defaultValue": "demosplitter",
+            "type": "String"
+        },
+        "splitter_serverResponseTime_alertName": {
+            "defaultValue": "demo-ingestion-splitter | Server-response-time",
+            "type": "string"
+        }
+    },
+    "variables":{},
+    "resources":[
+        {
+            "type": "microsoft.insights/components",
+            "apiVersion": "2015-05-01",
+            "name": "[parameters('components_demosplitter_name')]",
+            "location": "westeurope",
+            "kind": "web",
+            "properties": {
+                "Application_Type": "web",
+                "Request_Source": "IbizaWebAppExtensionCreate"
+            }
+        },
+        {
+            "name": "[parameters('splitter_serverResponseTime_alertName')]",
+            "type": "microsoft.insights/metricAlerts",
+            "apiVersion": "2018-03-01",            
+            "location": "global",
+            "properties": {
+                "description": "demo-ingestion-splitter server response time is greater than 5 seconds",
+                "severity": 3,
+                "enabled": true,
+                "scopes": [
+                    "[resourceId('microsoft.insights/components', parameters('components_demosplitter_name'))]"
+                ],
+                "evaluationFrequency": "PT5M",
+                "windowSize": "PT5M",
+                "criteria": {
+                    "allOf": [
+                        {
+                            "threshold": 5000,
+                            "name": "Metric1",
+                            "metricNamespace": "microsoft.insights/components",
+                            "metricName": "requests/duration",
+                            "dimensions": [],
+                            "operator": "GreaterThan",
+                            "timeAggregation": "Average",
+                            "criterionType": "StaticThresholdCriterion"
+                        }
+                    ],
+                    "odata.type": "Microsoft.Azure.Monitor.SingleResourceMultipleMetricCriteria"
+                },
+                "autoMitigate": true,
+                "targetResourceType": "microsoft.insights/components",
+                "targetResourceRegion": "westeurope",
+                "actions": [
+                    {
+                        "actionGroupId": "[parameters('actionGroupId')]",
+                        "webHookProperties": {}
+                    }
+                ]                
+            }
+        }
+    ]
+}
